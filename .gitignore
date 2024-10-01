@@ -1,0 +1,7 @@
+.terraform
+.vscode
+.terraform.lock.hcl
+create_vms.plan
+deleted.txt
+terraform.tfstate.backup
+terraform.tfstate
