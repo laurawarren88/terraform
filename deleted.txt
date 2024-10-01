@@ -1,0 +1,33 @@
+# terraform {
+#   required_providers {
+#     vshpere = {
+#         source = "registry.terraform.io/hashicorp/vshpere"
+#         version = ">=2.0.0"
+#     }
+#   }
+# }
+
+module "create_vms" {
+    source = "./modules/create_vms"
+
+    # This will loop through the above file and create 5 of these machines
+    # count = 3
+}
+
+
+# This will create a random name for each vm created 
+# resource "random_pet" "vm_name" {
+#     length = 2
+#     separator = "-"
+# }
+
+# Creates the VM
+resource "vsphere_virtual_machine" "gateway_vm"{
+    name = "${random_pet.vm_name.id}01" this will link to the above resource and assign the randomly generated name
+
+# Creates the folder in vcenter
+# resource "vsphere_folder" "parent" {
+#     path            = vars_folder_path
+#     type            = "vm"
+#     datacenter_id   = data.vsphere_datacenter.dc.id
+# }
