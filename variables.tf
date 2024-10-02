@@ -1,13 +1,13 @@
 variable "vcenter_username" {
-    default = "laura@easlab.co.uk"
+    description = "Username to access vCenter"
 }
 
 variable "vcenter_password" {
-    default =  "Renegade187!"
+    description = "Personal password to access vCenter"
 }
 
 variable "vcenter_server" {
-    default = "vcenter.easlab.co.uk"
+    description = "The private server name for vCenter"
 }
 
 # Infrastructure - vCenter / vSPhere environment
@@ -81,10 +81,6 @@ variable "netmask" {
   type = number
 }
 
-# variable "local_ovf_path" {
-#   description = "Path of OVF file template"
-# }
-
 # Gateway Variables
 variable "vm_name_gateway" {
     description = "hostname for the gateway"
@@ -104,8 +100,20 @@ variable "vm_dns_servers" {
   description = "The list of DNS servers to configure on the virtual machine"
 }
 
-# Variables for DNS and DHCP
+variable "vm_adapter_type" {
+  description = "Adapter used to setup the network"
+}
+
+# # Variables for DNS and DHCP
 # variable "vms" {
 #   type = map(any)
 #   description = "List of virtual machines to be deployed"
 # }
+
+variable "user" {
+  description = "The user for the VMs"
+}
+
+variable "password_vm" {
+  description = "Password to access the VM"
+}

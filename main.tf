@@ -39,18 +39,6 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
-# Local OVF/OVA Source
-# data "vsphere_ovf_vm_template" "ovfLocal" {
-#   name              = "CentOS9_test"
-#   resource_pool_id  = data.vsphere_compute_cluster.cluster.resource_pool_id
-#   datastore_id      = data.vsphere_datastore.datastore.id
-#   host_system_id    = data.vsphere_host.host.id
-#   local_ovf_path    = "/Users/laurawarren/Downloads/CentOS9_test.ovf"
-#   ovf_network_map = {
-#     "VM Network" : data.vsphere_network.gateway_network.id
-#   }
-# } 
-
 # Where the VMs will be stored
 data "vsphere_folder" "dev_folder" {
     path = var.folder_path
@@ -62,26 +50,14 @@ resource "vsphere_virtual_machine" "gateway_vm"{
     resource_pool_id            = data.vsphere_compute_cluster.cluster.resource_pool_id
     datastore_id                = data.vsphere_datastore.datastore.id
     folder                      = data.vsphere_folder.dev_folder.path
-    # firmware                    = var.firmware
+    firmware                    = var.firmware
     num_cpus                    = var.vm_cpu_n
     memory                      = var.vm_ram_mb
     guest_id                    = data.vsphere_virtual_machine.template.guest_id
     
-#     dynamic "network_interface" {
-#         for_each = data.vsphere_ovf_vm_template.ovfLocal.ovf_network_map
-#         content {
-#             network_id = network_interface.value
-#     }
-#   }
 
-    wait_for_guest_net_timeout  = 0
-
-#     ovf_deploy {
-#         allow_unverified_ssl_cert = false
-#         local_ovf_path            = data.vsphere_ovf_vm_template.ovfLocal.local_ovf_path
-#         disk_provisioning         = data.vsphere_ovf_vm_template.ovfLocal.disk_provisioning
-#         ovf_network_map           = data.vsphere_ovf_vm_template.ovfLocal.ovf_network_map
-#   }
+    wait_for_guest_net_timeout  = 300
+    # skip_wait_for_guest_net = true
 
     disk {
         label             = var.vm_disk_label
@@ -91,58 +67,60 @@ resource "vsphere_virtual_machine" "gateway_vm"{
 
     network_interface {
       network_id    = data.vsphere_network.gateway_network.id
-      adapter_type  = data.vsphere_virtual_machine.template.network_interface_types[0]
+      adapter_type = var.vm_adapter_type
+      
     }
 
     network_interface {
     network_id   = data.vsphere_network.laura.id
-    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+    adapter_type = var.vm_adapter_type
   }
 
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
-
+    
     customize {
       linux_options {
         host_name = var.vm_name_gateway
         domain    = var.vm_domain
       }
-
       network_interface {
         ipv4_address    = var.gateway_ip
-        ipv4_netmask    = var.netmask
-        dns_server_list	= var.vm_dns_servers
+        # ipv4_netmask    = var.netmask
       }
 
       network_interface {
         ipv4_address = var.internal_gateway_ip
-        ipv4_netmask = var.netmask
+        # ipv4_netmask = var.netmask
       }
 
       ipv4_gateway = var.external_gateway_ip
+      # dns_server_list	= var.vm_dns_servers
+      
     }
   }
 }
 
-#Creates the DNS and DHCP VMs
+# Creates the DNS and DHCP VMs
 # resource "vsphere_virtual_machine" "vm" {
 #   for_each         = var.vms
- 
 #   resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
 #   datastore_id     = data.vsphere_datastore.datastore.id
-#   guest_id         = data.vsphere_virtual_machine.template.guest_id
 #   folder           = data.vsphere_folder.dev_folder.path
+#   firmware         = var.firmware
+#   num_cpus         = var.vm_cpu_n
+#   memory           = var.vm_ram_mb
+#   guest_id         = data.vsphere_virtual_machine.template.guest_id
+ 
+#   wait_for_guest_net_timeout  = 600
   
 #   network_interface {
 #     network_id   = data.vsphere_network.laura.id
-#     adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+#     adapter_type = "vmxnet3" 
 #   }
 
 #   name             = each.value.name
 
-#   num_cpus         = var.vm_cpu_n
-#   memory           = var.vm_ram_mb
-# #   firmware         = var.firmware
 #   disk {
 #     label		          = var.vm_disk_label
 #     size		          = var.vm_disk_size
@@ -164,3 +142,40 @@ resource "vsphere_virtual_machine" "gateway_vm"{
 #     }
 #   }
 # }
+
+resource "tls_private_key" "ssh_key" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+resource "terraform_data" "setup_ssh" {
+   provisioner "file" {
+    content = file("~/.ssh/id_rsa.pub")
+    destination = "/root/.ssh/authorized_keys"
+  connection {
+    type        = "ssh"
+    host        = var.gateway_ip
+    user        = var.user 
+    password    = var.password_vm
+    private_key = file("~/.ssh/id_rsa") 
+    timeout     = "10m"
+  }
+}
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 700 /root/.ssh",
+      "chmod 600 /root/.ssh/authorized_keys",
+    ]
+  connection {
+    type        = "ssh"
+    host        = var.gateway_ip
+    user        = var.user
+    private_key = file("~/.ssh/id_rsa")
+    timeout     = "5m"
+    }
+  }
+  depends_on = [vsphere_virtual_machine.gateway_vm] # Ensure VM is created first
+}
+
+output "ssh_public_key" {
+  value = tls_private_key.ssh_key.public_key_openssh
+}
