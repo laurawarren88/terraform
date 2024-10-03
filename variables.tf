@@ -104,11 +104,16 @@ variable "vm_adapter_type" {
   description = "Adapter used to setup the network"
 }
 
-# # Variables for DNS and DHCP
-# variable "vms" {
-#   type = map(any)
-#   description = "List of virtual machines to be deployed"
-# }
+# Variables for DNS and DHCP
+variable "vms" {
+  type = map(any)
+  description = "List of virtual machines to be deployed"
+}
+
+variable "vm_ips" {
+  type = map(string)
+  description = "List of VM IPs"
+}
 
 variable "user" {
   description = "The user for the VMs"
