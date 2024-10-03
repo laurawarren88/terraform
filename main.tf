@@ -156,43 +156,6 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 
-# resource "tls_private_key" "ssh_key" {
-#   algorithm = "RSA"
-#   rsa_bits  = 2048
-# }
-# resource "terraform_data" "setup_ssh" {
-#    provisioner "file" {
-#     content = file("~/.ssh/id_rsa.pub")
-#     destination = "/root/.ssh/authorized_keys"
-#   connection {
-#     type        = "ssh"
-#     host        = var.gateway_ip
-#     user        = var.user 
-#     password    = var.password_vm
-#     private_key = file("~/.ssh/id_rsa") 
-#     timeout     = "10m"
-#   }
-# }
-#   provisioner "remote-exec" {
-#     inline = [
-#       "chmod 700 /root/.ssh",
-#       "chmod 600 /root/.ssh/authorized_keys",
-#     ]
-#   connection {
-#     type        = "ssh"
-#     host        = var.gateway_ip
-#     user        = var.user
-#     private_key = file("~/.ssh/id_rsa")
-#     timeout     = "5m"
-#     }
-#   }
-#   depends_on = [vsphere_virtual_machine.gateway_vm] # Ensure VM is created first
-# }
-
-# output "ssh_public_key" {
-#   value = tls_private_key.ssh_key.public_key_openssh
-# }
-
 # Generate SSH key (same key used for multiple VMs)
 resource "tls_private_key" "ssh_key" {
   algorithm = "RSA"
@@ -241,7 +204,3 @@ resource "tls_private_key" "ssh_key" {
 
   depends_on = [vsphere_virtual_machine.gateway_vm]
 }
-
-# output "ssh_public_key" {
-#   value = tls_private_key.ssh_key.public_key_openssh
-# }
