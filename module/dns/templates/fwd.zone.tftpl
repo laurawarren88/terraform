@@ -1,0 +1,16 @@
+$TTL 86400
+@   IN  SOA     dns.lmw.local. hostmaster.lmw.local. (
+        2024100701 ; Serial
+        3600       ; Refresh
+        1800       ; Retry
+        1209600    ; Expire
+        86400      ; Minimum TTL
+)
+@       IN      NS      dns.lmw.local.
+@       IN      A       10.0.0.3
+
+lmw.local.      IN      A       10.0.0.3
+www             IN      CNAME   lmw.local.
+gateway         IN      A       10.0.0.1
+dhcp            IN      A       10.0.0.2
+dns             IN      A       10.0.0.3

@@ -32,8 +32,8 @@ module "gateway_vm" {
   password_vm             = var.password_vm
 }
 
-module "dns_dhcp_vms" {
-  source                  = "./module/dns_dhcp"
+module "dns_vm" {
+  source                  = "./module/dns"
   vsphere_datacenter      = var.vsphere_datacenter
   vsphere_datastore       = var.vsphere_datastore
   vsphere_compute_cluster = var.vsphere_compute_cluster
@@ -42,7 +42,7 @@ module "dns_dhcp_vms" {
   internal_network        = var.internal_network
   folder_path             = var.folder_path
   template_name           = var.template_name
-  vms                     = var.vms
+  vm_name_dns             = var.vm_name_dns
   firmware                = var.firmware
   vm_cpu_n                = var.vm_cpu_n
   vm_ram_mb               = var.vm_ram_mb
@@ -51,6 +51,35 @@ module "dns_dhcp_vms" {
   vm_disk_thin            = var.vm_disk_thin
   vm_adapter_type         = var.vm_adapter_type
   vm_domain               = var.vm_domain
+  dns_ip                  = var.dns_ip
+  netmask                 = var.netmask
+  internal_gateway_ip     = var.internal_gateway_ip
+  vm_dns_servers          = var.vm_dns_servers
+  user                    = var.user
+  password_vm             = var.password_vm
+  gateway_ip              = var.gateway_ip
+}
+
+module "dhcp_vm" {
+  source                  = "./module/dhcp"
+  vsphere_datacenter      = var.vsphere_datacenter
+  vsphere_datastore       = var.vsphere_datastore
+  vsphere_compute_cluster = var.vsphere_compute_cluster
+  vsphere_host            = var.vsphere_host
+  gateway_network         = var.gateway_network
+  internal_network        = var.internal_network
+  folder_path             = var.folder_path
+  template_name           = var.template_name
+  vm_name_dhcp            = var.vm_name_dhcp
+  firmware                = var.firmware
+  vm_cpu_n                = var.vm_cpu_n
+  vm_ram_mb               = var.vm_ram_mb
+  vm_disk_label           = var.vm_disk_label
+  vm_disk_size            = var.vm_disk_size
+  vm_disk_thin            = var.vm_disk_thin
+  vm_adapter_type         = var.vm_adapter_type
+  vm_domain               = var.vm_domain
+  dhcp_ip                 = var.dhcp_ip
   netmask                 = var.netmask
   internal_gateway_ip     = var.internal_gateway_ip
   vm_dns_servers          = var.vm_dns_servers

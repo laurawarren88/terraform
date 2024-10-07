@@ -31,9 +31,8 @@ variable "folder_path" {
   description = "Where the VMs, once created, will be stored"
 }
 
-variable "vms" {
-  type = map(any)
-  description = "List of virtual machines to be deployed"
+variable "vm_name_dns" {
+  description = "Hostname set for the DNS VM"
 }
 
 variable "firmware" {
@@ -77,10 +76,26 @@ variable "netmask" {
   type = number
 }
 
+variable "dns_ip" {
+  description = "The static IP of the DNS VM"
+}
+
 variable "internal_gateway_ip" {
   description = "IP for the internal gateway to connect"
 }
 
 variable "vm_dns_servers" {
   description = "The list of DNS servers to configure on the virtual machine"
+}
+
+variable "user" {
+  description = "The user for the VMs"
+}
+
+variable "password_vm" {
+  description = "Password to access the VM"
+}
+
+variable "gateway_ip" {
+  description = "Static IP for the gateway"
 }
