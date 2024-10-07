@@ -38,3 +38,15 @@ vm_ips = {
   dns_ip     = "10.0.0.3"
   dhcp_ip    = "10.0.0.2"
 }
+
+# webserver variables
+vm_name_webserver = "webservertf"
+
+vcenter_username        = "laura@easlab.co.uk"
+vcenter_password        =  "Renegade187!"
+vcenter_server          = "vcenter.easlab.co.uk"
+password_vm             = "Renegade187!"
+vsphere_compute_cluster = "EAS-DEV"
+vsphere_host            = "dev-esxi1.dev.easlab.co.uk"
+internal_network        = "Laura"
+folder_path             = "Development/vm/Laura"

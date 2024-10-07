@@ -31,8 +31,8 @@ variable "template_name" {
   description = "Name of template the VMs will be built from"
 }
 
-variable "vm_name_dhcp" {
-  description = "Hostname set for the DHCP VM"
+variable "vm_name_webserver" {
+  description = "Hostname set for the webserver VM"
 }
 
 variable "firmware" {
@@ -74,10 +74,6 @@ variable "vm_domain" {
 variable "netmask" {
   description = "The IPv4 subnet mask"
   type = number
-}
-
-variable "dhcp_ip" {
-  description = "The static IP of the DNS VM"
 }
 
 variable "internal_gateway_ip" {

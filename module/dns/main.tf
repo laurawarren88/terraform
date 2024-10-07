@@ -207,6 +207,10 @@ resource "vsphere_virtual_machine" "vm" {
       "firewall-cmd --permanent --add-port=53/tcp",
       "firewall-cmd --permanent --add-port=53/udp",
       "firewall-cmd --permanent --add-port=22/tcp",
+      "firewall-cmd --permanent --add-port=80/tcp",
+      "firewall-cmd --permanent --add-port=80/udp",
+      "firewall-cmd --permanent --add-port=3000/tcp",
+      "firewall-cmd --permanent --add-port=443/tcp",
       "firewall-cmd --reload"
     ]
 

@@ -73,4 +73,84 @@ resource "vsphere_virtual_machine" "vm" {
       dns_server_list = var.vm_dns_servers
     }
   }
+
+  # Install DHCP packages
+  provisioner "remote-exec" {
+    inline = [
+      "yum install dhcp* -y"
+    ]
+
+   connection {
+      type          = "ssh"
+      host          = var.dhcp_ip  
+      user          = var.user
+      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+      bastion_user  = var.user
+      password      = var.password_vm
+      private_key   = file("~/.ssh/id_rsa")
+      timeout       = "5m"
+    }
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/templates/dhcp_conf.tftpl"
+    destination = "/etc/dhcp/dhcpd.conf"
+
+    connection {
+      type          = "ssh"
+      host          = var.dhcp_ip  
+      user          = var.user
+      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+      bastion_user  = var.user
+      password      = var.password_vm
+      private_key   = file("~/.ssh/id_rsa")
+      timeout       = "5m"
+    }
+  }
+
+  # Restart and enable the named service
+  provisioner "remote-exec" {
+    inline = [
+      "systemctl restart dhcpd",
+      "systemctl enable dhcpd"
+    ]
+
+   connection {
+      type          = "ssh"
+      host          = var.dhcp_ip  
+      user          = var.user
+      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+      bastion_user  = var.user
+      password      = var.password_vm
+      private_key   = file("~/.ssh/id_rsa")
+      timeout       = "5m"
+    }
+  }
+
+  # Open necessary firewall ports
+  provisioner "remote-exec" {
+    inline = [
+      "firewall-cmd --permanent --add-port=53/tcp",
+      "firewall-cmd --permanent --add-port=53/udp",
+      "firewall-cmd --permanent --add-port=22/tcp",
+      "firewall-cmd --permanent --add-port=80/tcp",
+      "firewall-cmd --permanent --add-port=80/udp",
+      "firewall-cmd --permanent --add-port=3000/tcp",
+      "firewall-cmd --permanent --add-port=443/tcp",
+      "firewall-cmd --permanent --add-port=67/tcp",
+      "firewall-cmd --permanent --add-port=67/udp",
+      "firewall-cmd --reload"
+    ]
+
+    connection {
+      type          = "ssh"
+      host          = var.dhcp_ip  
+      user          = var.user
+      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+      bastion_user  = var.user
+      password      = var.password_vm
+      private_key   = file("~/.ssh/id_rsa")
+      timeout       = "5m"
+    }
+  }
 }

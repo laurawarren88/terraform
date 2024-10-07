@@ -135,3 +135,7 @@ variable "vm_name_dhcp" {
 variable "dhcp_ip" {
   description = "The static IP of the DNS VM"
 }
+
+variable "vm_name_webserver" {
+  description = "Hostname set for the webserver VM"
+}
