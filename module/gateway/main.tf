@@ -81,7 +81,7 @@ resource "vsphere_virtual_machine" "gateway_vm"{
     }
   }
   # Use a remote-exec provisioner to fix the network config
-    provisioner "remote-exec" {
+  provisioner "remote-exec" {
     inline = [
       # Remove gateway from ens34 (internal interface)
       "sed -i '/GATEWAY/d' /etc/sysconfig/network-scripts/ifcfg-ens34",
@@ -107,8 +107,29 @@ resource "vsphere_virtual_machine" "gateway_vm"{
       timeout     = "5m"
     }
   }
-}
 
-output "gateway_vm_id" {
+  # Open necessary firewall ports
+  provisioner "remote-exec" {
+    inline = [
+      "firewall-cmd --permanent --zone=public --add-masquerade",
+      "firewall-cmd --permanent --zone=public --add-icmp-block-inversion",
+      "firewall-cmd --permanent --add-port=80/tcp",
+      "firewall-cmd --permanent --add-port=80/udp",
+      "firewall-cmd --permanent --add-port=3000/tcp",
+      "firewall-cmd --permanent --add-port=443/tcp",
+      "firewall-cmd --reload"
+    ]
+
+    connection {
+      type        = "ssh"
+      host        = var.gateway_ip  # Use the external IP to connect
+      user        = var.user
+      password    = var.password_vm
+      private_key = file("~/.ssh/id_rsa")
+      timeout     = "5m"
+    }
+  }
+}
+  output "gateway_vm_id" {
   value = vsphere_virtual_machine.gateway_vm.id
 }

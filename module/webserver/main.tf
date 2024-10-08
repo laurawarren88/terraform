@@ -90,10 +90,29 @@ resource "vsphere_virtual_machine" "webserver_vm"{
     }
   }
 
+  provisioner "remote-exec" {
+ inline = [
+      # Set SELinux to disabled in the config file
+      "sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config",
+
+      # Disable SELinux immediately for the current session
+      "setenforce 0"
+ ]
+  connection {
+    type          = "ssh"
+    host          = self.default_ip_address
+    user          = var.user
+    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+    bastion_user  = var.user
+    password      = var.password_vm
+    private_key   = file("~/.ssh/id_rsa")
+    timeout       = "5m"
+  }
+}
+
   # Provisioning Steps (install packages, clone repo, etc.)
   provisioner "remote-exec" {
     inline = [
-      "yum remove -y nodejs",
       "yum install -y curl git httpd",
       "curl -o nodesource_setup.sh https://rpm.nodesource.com/setup_18.x",
       "bash nodesource_setup.sh",
@@ -121,6 +140,25 @@ provisioner "remote-exec" {
     "mkdir -p ~/.ssh",
     "echo '${file("~/.ssh/id_rsa.pub")}' >> ~/.ssh/authorized_keys",
     "chmod 600 ~/.ssh/authorized_keys"
+  ]
+   connection {
+      type          = "ssh"
+      host          = self.default_ip_address
+      user          = var.user
+      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+      bastion_user  = var.user
+      password      = var.password_vm
+      private_key   = file("~/.ssh/id_rsa")
+      timeout       = "5m"
+    }
+}
+
+# Copy SSH Private Key to the webserver for Github
+provisioner "remote-exec" {
+  inline = [
+    "touch -p ~/.ssh/id_rsa",
+    "echo '${file("~/.ssh/id_rsa")}' >> ~/.ssh/id_rsa",
+    "chmod 600 ~/.ssh/id_rsa"
   ]
    connection {
       type          = "ssh"
@@ -204,11 +242,11 @@ provisioner "remote-exec" {
   }
 }
 
-# Install npm dependencies
+# Ensure pm2 is installed globally
 provisioner "remote-exec" {
   inline = [
     "cd /var/www/trainee_challenge && npm install",
-    "npm init"
+    "npm install -g pm2",
   ]
  connection {
     type          = "ssh"
@@ -222,92 +260,78 @@ provisioner "remote-exec" {
   }
 }
 
-# Ensure pm2 is installed globally
-# provisioner "remote-exec" {
-#   inline = [
-#     "npm install -g pm2"
-#   ]
-#  connection {
-#     type          = "ssh"
-#     host          = self.default_ip_address
-#     user          = var.user
-#     bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-#     bastion_user  = var.user
-#     password      = var.password_vm
-#     private_key   = file("~/.ssh/id_rsa")
-#     timeout       = "5m"
-#   }
-# }
-
-# # Start the web application using pm2
-# provisioner "remote-exec" {
-#   inline = [
-#     # "cd /var/www/trainee_challenge && pm2 start index.js --name trainee_app -f"
-#     "cd /var/www/trainee_challenge && npm init"
-#   ]
-#   connection {
-#     type          = "ssh"
-#     host          = self.default_ip_address
-#     user          = var.user
-#     bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-#     bastion_user  = var.user
-#     password      = var.password_vm
-#     private_key   = file("~/.ssh/id_rsa")
-#     timeout       = "5m"
-#   }
-# }
+# Start the web application using pm2
+provisioner "remote-exec" {
+  inline = [
+    "cd /var/www/trainee_challenge && pm2 start index.js --name trainee_app -f"
+  ]
+  connection {
+    type          = "ssh"
+    host          = self.default_ip_address
+    user          = var.user
+    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+    bastion_user  = var.user
+    password      = var.password_vm
+    private_key   = file("~/.ssh/id_rsa")
+    timeout       = "5m"
+  }
+}
 
 # Save pm2 process list to start on reboot
-# provisioner "remote-exec" {
-#   inline = [
-#     "pm2 save"
-#   ]
-#   connection {
-#     type          = "ssh"
-#     host          = self.default_ip_address
-#     user          = var.user
-#     bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-#     bastion_user  = var.user
-#     password      = var.password_vm
-#     private_key   = file("~/.ssh/id_rsa")
-#     timeout       = "5m"
-#   }
-# }
+provisioner "remote-exec" {
+  inline = [
+    "pm2 save"
+  ]
+  connection {
+    type          = "ssh"
+    host          = self.default_ip_address
+    user          = var.user
+    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+    bastion_user  = var.user
+    password      = var.password_vm
+    private_key   = file("~/.ssh/id_rsa")
+    timeout       = "5m"
+  }
+}
 
 # Ensure pm2 restarts the app on reboot
-# provisioner "remote-exec" {
-#   inline = [
-#     "pm2 startup systemd"
-#   ]
-#   connection {
-#     type          = "ssh"
-#     host          = self.default_ip_address
-#     user          = var.user
-#     bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-#     bastion_user  = var.user
-#     password      = var.password_vm
-#     private_key   = file("~/.ssh/id_rsa")
-#     timeout       = "5m"
-#   }
-# }
+provisioner "remote-exec" {
+  inline = [
+    "pm2 startup systemd"
+  ]
+  connection {
+    type          = "ssh"
+    host          = self.default_ip_address
+    user          = var.user
+    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+    bastion_user  = var.user
+    password      = var.password_vm
+    private_key   = file("~/.ssh/id_rsa")
+    timeout       = "5m"
+  }
+}
 
-# # # Enable pm2 to start on boot
-# provisioner "remote-exec" {
-#   inline = [
-#     "systemctl enable pm2-root",
-#     "systemctl start pm2-root"
-#   ]
-#   connection {
-#     type          = "ssh"
-#     host          = self.default_ip_address
-#     user          = var.user
-#     bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-#     bastion_user  = var.user
-#     password      = var.password_vm
-#     private_key   = file("~/.ssh/id_rsa")
-#     timeout       = "5m"
-#   }
-# }
+
+# Enable pm2 to start on boot
+provisioner "remote-exec" {
+  inline = [      
+      # Restart the pm2-root service
+      "systemctl restart pm2-root",
+
+      # Enable PM2 service to start at boot if not already done
+      "systemctl enable pm2-root"
+    ]
+  connection {
+    type          = "ssh"
+    host          = self.default_ip_address
+    user          = var.user
+    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+    bastion_user  = var.user
+    password      = var.password_vm
+    private_key   = file("~/.ssh/id_rsa")
+    timeout       = "5m"
+  }
+}
 
       # Open necessary firewall ports
   provisioner "remote-exec" {
@@ -333,6 +357,22 @@ provisioner "remote-exec" {
     password      = var.password_vm
     private_key   = file("~/.ssh/id_rsa")
     timeout       = "5m"
+    }
   }
+  provisioner "remote-exec" {
+  inline = [
+      "curl http://$(hostname -I | awk '{print $1}'):3000 | jq"
+    ]
+
+    connection {
+    type          = "ssh"
+    host          = self.default_ip_address
+    user          = var.user
+    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
+    bastion_user  = var.user
+    password      = var.password_vm
+    private_key   = file("~/.ssh/id_rsa")
+    timeout       = "5m"
+    }
   }
 }
