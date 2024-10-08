@@ -55,8 +55,8 @@ You will need to add a secrets 🤫 file into the file tree to store necessary i
 I'll walk you through it:
 
 ```bash
-touch secrets.tfvars
-vim secrets.tfvars
+touch secret.tfvars
+vim secret.tfvars
 ```
 
 In the file you need to include your information ℹ️ into the following variables:
