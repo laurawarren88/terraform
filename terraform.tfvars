@@ -1,6 +1,9 @@
 # Variables for vsphere
-vsphere_datacenter  = "Development"
-vsphere_datastore   = "VM_STORAGE"
+vcenter_server          = "vcenter.easlab.co.uk"
+vsphere_datacenter      = "Development"
+vsphere_datastore       = "VM_STORAGE"
+vsphere_compute_cluster = "EAS-DEV"
+vsphere_host            = "dev-esxi1.dev.easlab.co.uk"
 
 # VM variables for all
 gateway_network = "VM Network"

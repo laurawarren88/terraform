@@ -37,6 +37,19 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
+locals  {
+  # Define the common connection block
+  connection_config = {
+    type          = "ssh"
+    user          = var.user
+    bastion_host  = var.gateway_ip
+    bastion_user  = var.user
+    password      = var.password_vm
+    private_key   = file("~/.ssh/id_rsa")
+    timeout       = "5m"
+  }
+}
+
 # Creates the Gateway VM
 resource "vsphere_virtual_machine" "webserver_vm"{
     name                        = var.vm_name_webserver
@@ -72,65 +85,62 @@ resource "vsphere_virtual_machine" "webserver_vm"{
     }
   }
 
-  # Retrieve the dynamic IP from the VM
-  provisioner "remote-exec" {
-    inline = [
-      "echo 'Waiting for IP address...'"
-    ]
-
-   connection {
-      type          = "ssh"
-      host          = self.default_ip_address
-      user          = var.user
-      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-      bastion_user  = var.user
-      password      = var.password_vm
-      private_key   = file("~/.ssh/id_rsa")
-      timeout       = "5m"
-    }
-  }
-
-  provisioner "remote-exec" {
- inline = [
-      # Set SELinux to disabled in the config file
-      "sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config",
-
-      # Disable SELinux immediately for the current session
-      "setenforce 0"
- ]
+# Retrieve the dynamic IP from the VM
+provisioner "remote-exec" {
+  inline = [
+    "echo 'Waiting for IP address...'"
+  ]
   connection {
-    type          = "ssh"
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
 }
 
-  # Provisioning Steps (install packages, clone repo, etc.)
-  provisioner "remote-exec" {
-    inline = [
-      "yum install -y curl git httpd",
-      "curl -o nodesource_setup.sh https://rpm.nodesource.com/setup_18.x",
-      "bash nodesource_setup.sh",
-      "yum install nodejs -y",
-      "yum install npm -y",
-      "npm install -g npm@10.9.0",
-      "systemctl restart httpd",
-      "systemctl enable httpd"
-    ]
+# Set SELinux to disabled
+provisioner "remote-exec" {
+  inline = [
+    "sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config",
+    "setenforce 0"
+  ]
   connection {
-      type          = "ssh"
-      host          = self.default_ip_address
-      user          = var.user
-      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-      bastion_user  = var.user
-      password      = var.password_vm
-      private_key   = file("~/.ssh/id_rsa")
-      timeout       = "5m"
+    type          = local.connection_config.type
+    host          = self.default_ip_address
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
+  }
+}
+
+# Install necessary packages
+provisioner "remote-exec" {
+  inline = [
+    "yum install -y curl git httpd",
+    "curl -o nodesource_setup.sh https://rpm.nodesource.com/setup_18.x",
+    "bash nodesource_setup.sh",
+    "yum install nodejs -y",
+    "yum install npm -y",
+    "npm install -g npm@10.9.0",
+    "systemctl restart httpd",
+    "systemctl enable httpd"
+  ]
+  connection {
+    type          = local.connection_config.type
+    host          = self.default_ip_address
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
     }
   }
 
@@ -142,15 +152,15 @@ provisioner "remote-exec" {
     "chmod 600 ~/.ssh/authorized_keys"
   ]
    connection {
-      type          = "ssh"
-      host          = self.default_ip_address
-      user          = var.user
-      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-      bastion_user  = var.user
-      password      = var.password_vm
-      private_key   = file("~/.ssh/id_rsa")
-      timeout       = "5m"
-    }
+    type          = local.connection_config.type
+    host          = self.default_ip_address
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
+  }
 }
 
 # Copy SSH Private Key to the webserver for Github
@@ -160,16 +170,16 @@ provisioner "remote-exec" {
     "echo '${file("~/.ssh/id_rsa")}' >> ~/.ssh/id_rsa",
     "chmod 600 ~/.ssh/id_rsa"
   ]
-   connection {
-      type          = "ssh"
-      host          = self.default_ip_address
-      user          = var.user
-      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-      bastion_user  = var.user
-      password      = var.password_vm
-      private_key   = file("~/.ssh/id_rsa")
-      timeout       = "5m"
-    }
+  connection {
+    type          = local.connection_config.type
+    host          = self.default_ip_address
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
+  }
 }
 
 # Ensure the destination directory exists
@@ -179,46 +189,48 @@ provisioner "remote-exec" {
     "chmod 0755 /var/www/trainee_challenge"
   ]
   connection {
-      type          = "ssh"
-      host          = self.default_ip_address
-      user          = var.user
-      bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-      bastion_user  = var.user
-      password      = var.password_vm
-      private_key   = file("~/.ssh/id_rsa")
-      timeout       = "5m"
-    }
+    type          = local.connection_config.type
+    host          = self.default_ip_address
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
+  }
 }
 
+# Add GitHub to known hosts
 provisioner "remote-exec" {
   inline = [
     "ssh-keyscan -H github.com >> ~/.ssh/known_hosts"
   ]
   connection {
-    type          = "ssh"
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
 }
 
+# Clone the repository
 provisioner "remote-exec" {
   inline = [
     "git clone git@github.com:Enterprise-Automation/trainee-challenge-node-app.git /var/www/trainee_challenge"
   ]
   connection {
-    type          = "ssh"
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
 }
 
@@ -230,33 +242,33 @@ provisioner "remote-exec" {
     "TARGET_URL=\"https://jsonplaceholder.typicode.com/todos\"",
     "EOL"
   ]
- connection {
-    type          = "ssh"
+  connection {
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
 }
 
-# Ensure pm2 is installed globally
+# Install npm packages and PM2
 provisioner "remote-exec" {
   inline = [
     "cd /var/www/trainee_challenge && npm install",
     "npm install -g pm2",
   ]
- connection {
-    type          = "ssh"
+  connection {
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
 }
 
@@ -266,14 +278,14 @@ provisioner "remote-exec" {
     "cd /var/www/trainee_challenge && pm2 start index.js --name trainee_app -f"
   ]
   connection {
-    type          = "ssh"
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
 }
 
@@ -283,14 +295,14 @@ provisioner "remote-exec" {
     "pm2 save"
   ]
   connection {
-    type          = "ssh"
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
 }
 
@@ -300,79 +312,75 @@ provisioner "remote-exec" {
     "pm2 startup systemd"
   ]
   connection {
-    type          = "ssh"
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
 }
-
 
 # Enable pm2 to start on boot
 provisioner "remote-exec" {
   inline = [      
-      # Restart the pm2-root service
-      "systemctl restart pm2-root",
-
-      # Enable PM2 service to start at boot if not already done
-      "systemctl enable pm2-root"
-    ]
+    "systemctl restart pm2-root",
+    "systemctl enable pm2-root"
+  ]
   connection {
-    type          = "ssh"
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
 }
 
-      # Open necessary firewall ports
-  provisioner "remote-exec" {
-    inline = [
-      "firewall-cmd --permanent --add-port=53/tcp",
-      "firewall-cmd --permanent --add-port=53/udp",
-      "firewall-cmd --permanent --add-port=22/tcp",
-      "firewall-cmd --permanent --add-port=80/tcp",
-      "firewall-cmd --permanent --add-port=80/udp",
-      "firewall-cmd --permanent --add-port=3000/tcp",
-      "firewall-cmd --permanent --add-port=443/tcp",
-      "firewall-cmd --permanent --add-port=67/tcp",
-      "firewall-cmd --permanent --add-port=67/udp",
-      "firewall-cmd --reload"
-    ]
-
-    connection {
-    type          = "ssh"
+# Open necessary firewall ports
+provisioner "remote-exec" {
+  inline = [
+    "firewall-cmd --permanent --add-port=53/tcp",
+    "firewall-cmd --permanent --add-port=53/udp",
+    "firewall-cmd --permanent --add-port=22/tcp",
+    "firewall-cmd --permanent --add-port=80/tcp",
+    "firewall-cmd --permanent --add-port=80/udp",
+    "firewall-cmd --permanent --add-port=3000/tcp",
+    "firewall-cmd --permanent --add-port=443/tcp",
+    "firewall-cmd --permanent --add-port=67/tcp",
+    "firewall-cmd --permanent --add-port=67/udp",
+    "firewall-cmd --reload"
+  ]
+  connection {
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
-    }
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
   }
-  provisioner "remote-exec" {
+}
+
+# Test if the application is running
+provisioner "remote-exec" {
   inline = [
       "curl http://$(hostname -I | awk '{print $1}'):3000 | jq"
-    ]
-
-    connection {
-    type          = "ssh"
+  ]
+  connection {
+    type          = local.connection_config.type
     host          = self.default_ip_address
-    user          = var.user
-    bastion_host  = var.gateway_ip # Gateway VM as the ProxyJump host
-    bastion_user  = var.user
-    password      = var.password_vm
-    private_key   = file("~/.ssh/id_rsa")
-    timeout       = "5m"
+    user          = local.connection_config.user
+    bastion_host  = local.connection_config.bastion_host
+    bastion_user  = local.connection_config.bastion_user
+    password      = local.connection_config.password
+    private_key   = local.connection_config.private_key
+    timeout       = local.connection_config.timeout
     }
   }
 }

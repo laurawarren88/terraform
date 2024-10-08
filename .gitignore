@@ -2,8 +2,6 @@
 .vscode
 .terraform.lock.hcl
 .terraform.tfstate.lock.info
-create_vms.plan
-deleted.txt
 terraform.tfstate.backup
 terraform.tfstate
 secret.tfvars

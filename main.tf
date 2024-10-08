@@ -4,6 +4,7 @@ provider "vsphere" {
     vsphere_server          = var.vcenter_server 
     allow_unverified_ssl    = true
 }
+
 module "gateway_vm" {
   source                  = "./module/gateway"
   vsphere_datacenter      = var.vsphere_datacenter
