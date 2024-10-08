@@ -81,6 +81,18 @@ Take a look at the terraform.tfvars file as well as you may need to change some 
 
 ## 🐾 Step Five
 
+Initiate Terraform
+
+```bash
+terraform init
+```
+
+Ensure it builds correctly and will run without errors
+
+```bash
+terraform plan -var-file="secret.tfvars"
+```
+
 Run the Terraform script, with or without extra debugging information:
 
 ```bash
